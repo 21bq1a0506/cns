@@ -1,58 +1,52 @@
 import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.util.Scanner;
 
-public class RSADemo {
-    private final static BigInteger one = new BigInteger("1");
-    private final static SecureRandom random = new SecureRandom();
+public class Main {
+
     private BigInteger privateKey;
     private BigInteger publicKey;
     private BigInteger modulus;
 
-    // generate an N-bit (roughly) public and private key
-    RSADemo(int N) {
-        BigInteger p = BigInteger.probablePrime(N/2, random);
-        BigInteger q = BigInteger.probablePrime(N/2, random);
-        BigInteger phi = (p.subtract(one)).multiply(q.subtract(one));
-        System.out.println("prime p = " + p);
-        System.out.println("prime q = " + q);
-
+    public Main(int bitLength) {
+        SecureRandom random = new SecureRandom();
+        BigInteger p = new BigInteger(bitLength / 2, 100, random);
+        BigInteger q = new BigInteger(bitLength / 2, 100, random);
         modulus = p.multiply(q);
-        System.out.println("phi = " + phi);
-        publicKey = new BigInteger("65537"); // common value in practice = 2^16 + 1
+
+        BigInteger phi = p.subtract(BigInteger.ONE).multiply(q.subtract(BigInteger.ONE));
+
+        publicKey = new BigInteger("65537");
+        while (phi.gcd(publicKey).intValue() > 1) {
+            publicKey = publicKey.add(new BigInteger("2"));
+        }
+
         privateKey = publicKey.modInverse(phi);
     }
 
-    BigInteger encrypt(BigInteger message) {
+    public BigInteger encrypt(BigInteger message) {
         return message.modPow(publicKey, modulus);
     }
 
-    BigInteger decrypt(BigInteger encrypted) {
-        return encrypted.modPow(privateKey, modulus);
-    }
-
-    public String toString() {
-        String s = "";
-        s += "public = " + publicKey + "\n";
-        s += "private = " + privateKey + "\n";
-        s += "modulus = " + modulus;
-        return s;
+    public BigInteger decrypt(BigInteger encryptedMessage) {
+        return encryptedMessage.modPow(privateKey, modulus);
     }
 
     public static void main(String[] args) {
-        int N = Integer.parseInt(args[0]);
-        RSADemo key = new RSADemo(N);
-        System.out.println(key);
+        int bitLength = 1024;
+        Main rsa = new Main(bitLength);
 
-        // create random message, encrypt and decrypt
-        BigInteger message = new BigInteger("8");
-        //// create message by converting string to integer
-        // String s = "test";
-        // byte[] bytes = s.getBytes();
-        // BigInteger message = new BigInteger(bytes);
-        BigInteger encrypt = key.encrypt(message);
-        BigInteger decrypt = key.decrypt(encrypt);
-        System.out.println("message = " + message);
-        System.out.println("encrypted = " + encrypt);
-        System.out.println("decrypted = " + decrypt);
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Enter the message to encrypt:");
+        String message = scanner.nextLine();
+        scanner.close();
+
+        BigInteger plaintext = new BigInteger(message.getBytes());
+        BigInteger ciphertext = rsa.encrypt(plaintext);
+
+        System.out.println("Ciphertext: " + ciphertext);
+
+        BigInteger decryptedMessage = rsa.decrypt(ciphertext);
+        System.out.println("Decrypted message: " + new String(decryptedMessage.toByteArray()));
     }
 }
